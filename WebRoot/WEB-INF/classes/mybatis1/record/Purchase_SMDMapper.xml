@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Purchase_SMDMapper">
+
+    <!--表名 -->
+    <sql id="tableName">
+		"FT_PURCHASE_SMD"
+	</sql>
+
+    <!-- 字段 -->
+    <sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"NUMBER",	
+		"PHONE",	
+		"MODE_PAYMENT",	
+		"INTEREST_CYCLE",	
+		"ORDER_TYPE",
+		"ORDER_NUMBER",
+		"PAYMENT_TIME",	
+		"PAYMENT_STATE",	
+		"RELEASE_TIME",
+		"BALANCE",
+		"PURCHASE_SMD_ID"
+	</sql>
+
+    <!-- 字段值 -->
+    <sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{NUMBER},	
+			#{PHONE},	
+			#{MODE_PAYMENT},	
+			#{INTEREST_CYCLE},	
+			#{ORDER_TYPE},
+			#{ORDER_NUMBER},
+			#{PAYMENT_TIME},	
+			#{PAYMENT_STATE},	
+			#{RELEASE_TIME},
+			#{BALANCE},
+			#{PURCHASE_SMD_ID}
+	</sql>
+
+    <!-- 新增-->
+    <insert id="save" parameterType="pd">
+        insert into
+        <include refid="tableName"></include>
+        (
+        <include refid="Field"></include>
+        ) values (
+        <include refid="FieldValue"></include>
+        )
+    </insert>
+
+    <!-- 删除-->
+    <delete id="delete" parameterType="pd">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "PURCHASE_SMD_ID" = #{PURCHASE_SMD_ID}
+    </delete>
+
+    <!-- 根据订单号删除-->
+    <delete id="deleteByOrderNumbe" parameterType="pd">
+        delete from
+        <include refid="tableName"/>
+        where
+        "ORDER_NUMBER" = #{ORDER_NUMBER}
+    </delete>
+
+    <!-- 清空数据-->
+    <delete id="wipeDate" parameterType="pd">
+        delete from
+        <include refid="tableName"/>
+    </delete>
+
+    <!-- 修改 -->
+    <update id="edit" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <foreach item="item" collection="_parameter.keys"
+                 separator="," close="">
+            ${item} = #{[${item}]}
+        </foreach>
+        where
+        "PURCHASE_SMD_ID" = #{PURCHASE_SMD_ID}
+    </update>
+
+    <!-- 更改状态并增加余额 -->
+    <update id="editStateAndMoney" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "PAYMENT_STATE" = #{PAYMENT_STATE},
+        "BALANCE" = "BALANCE" + ${money}
+        where
+        "PURCHASE_SMD_ID" = #{PURCHASE_SMD_ID}
+    </update>
+
+    <!-- 通过ID获取数据 -->
+    <select id="findById" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"></include>
+        from
+        <include refid="tableName"></include>
+        where
+        "PURCHASE_SMD_ID" = #{PURCHASE_SMD_ID}
+    </select>
+
+    <!-- 通过手机号获取最新的一条订单 -->
+    <select id="getNewOrderByPhone" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PURCHASE_SMD_ID" = (SELECT
+        DECODE(MAX( PURCHASE_SMD_ID ), null, -1,MAX( PURCHASE_SMD_ID )) AS PURCHASE_SMD_ID
+        FROM
+        FT_PURCHASE_SMD
+        WHERE
+        "PHONE" = #{PHONE} )
+    </select>
+
+    <!-- 通过手机号统计尾款查交易完成订单的数据 -->
+    <select id="getCountByPhoneAndFulfil" parameterType="pd" resultType="pd">
+        select
+        DECODE(COUNT( "PURCHASE_SMD_ID" ), null, 0,COUNT( "PURCHASE_SMD_ID" )) AS COUNT_ID
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+        and
+        "ORDER_TYPE" = 2
+        and
+        "PAYMENT_STATE" = 6
+    </select>
+
+    <!-- 通过手机号统计交易完成的总额 -->
+    <select id="getSumAmount" parameterType="pd" resultType="pd">
+        select
+        DECODE(SUM( "NUMBER" ), null, 0,SUM( "NUMBER" )) AS SUM_AMOUNT
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+        and
+        "PAYMENT_STATE" = 6
+    </select>
+
+    <!-- 通过订单号查预付款或者尾款 -->
+    <select id="findByOrderIdAndType" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "ORDER_NUMBER" = #{ORDER_NUMBER}
+        and
+        "ORDER_TYPE" = ${ORDER_TYPE}
+    </select>
+
+    <!-- 通过订单ID获取数据 -->
+    <select id="findByOrderId" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PURCHASE_SMD_ID" = #{OrderId}
+        and
+        "ORDER_TYPE" = ${ORDER_TYPE}
+    </select>
+
+    <!-- 获取最新的订单ID -->
+    <select id="getMaxOrderId" parameterType="pd" resultType="pd">
+        SELECT
+            MAX( "PURCHASE_SMD_ID" ) as MAX_ID
+        FROM
+        <include refid="tableName"/>
+    </select>
+
+    <!-- 获取所有未匹配的订单金额累计 -->
+    <select id="getUnmatchCount" parameterType="pd" resultType="pd">
+        select
+        DECODE(SUM("BALANCE"), null, 0,SUM("BALANCE")) AS COUNT
+        from
+        <include refid="tableName"/>
+        where
+        "PAYMENT_STATE" = '5'
+    </select>
+
+    <!-- 获取预付款或尾款未匹配的订单金额累计 -->
+    <select id="getUnmatchCount1" parameterType="pd" resultType="pd">
+        select
+        DECODE(SUM("BALANCE"), null, 0,SUM("BALANCE")) AS COUNT
+        from
+        <include refid="tableName"/>
+        where
+        "PAYMENT_STATE" = '5'
+        and
+        ORDER_TYPE = #{ORDER_TYPE}
+    </select>
+
+    <!-- 列表 -->
+    <select id="datalistPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where 1=1
+        <if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+            and
+            (
+            "NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            or
+            "PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            or
+            "INTEREST_CYCLE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            or
+            "ORDER_NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            or
+            "BALANCE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            )
+        </if>
+        /*时间段匹配*/
+        <if test="pd.lastStart1 != null and pd.lastStart1 != '' ">
+            and
+            "GMT_CREATE" &gt;= #{pd.lastStart1}
+        </if>
+        <if test="pd.lastEnd1 != null and pd.lastEnd1 != '' ">
+            and
+            "GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd1}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+        </if>
+    </select>
+
+    <!-- 预付款或者尾款列表 -->
+    <select id="downPaymentsListPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where 1=1
+        <if test="pd.keywords1 != null and pd.keywords1 != '' "><!-- 关键词检索 -->
+            and
+            (
+                "NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords1}),'%')
+                 or
+                "PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords1}),'%')
+                or
+                "INTEREST_CYCLE" LIKE CONCAT(CONCAT('%', #{pd.keywords1}),'%')
+                or
+                "ORDER_NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords1}),'%')
+                or
+                "BALANCE" LIKE CONCAT(CONCAT('%', #{pd.keywords1}),'%')
+            )
+        </if>
+        /*时间段匹配*/
+        <if test="pd.lastStart1 != null and pd.lastStart1 != '' ">
+            and
+            "GMT_CREATE" &gt;= #{pd.lastStart1}
+        </if>
+        <if test="pd.lastEnd1 != null and pd.lastEnd1 != '' ">
+            and
+            "GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd1}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+        </if>
+        and
+        "ORDER_TYPE" = #{pd.ORDER_TYPE}
+        and "BALANCE" &gt; 0
+    </select>
+
+    <!-- 列表(全部) -->
+    <select id="listAll" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"></include>
+        from
+        <include refid="tableName"></include>
+    </select>
+
+    <!-- 列表(根据订单号获取预付款和尾款) -->
+    <select id="listByOrderNumber" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "ORDER_NUMBER" = ${ORDER_NUMBER}
+        and
+        "BALANCE" &lt;= 0
+    </select>
+
+    <!-- 列表(根据ID获取未匹配的数据) -->
+    <select id="listById" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PURCHASE_SMD_ID" in ( ${PURCHASE_SMD_ID} )
+        and
+        "BALANCE" &gt; 0
+    </select>
+
+    <!-- 列表(通过手机号查所有数据) -->
+    <select id="listAllByPhone" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+        order by "GMT_CREATE" desc
+    </select>
+
+    <!-- 批量删除 -->
+    <delete id="deleteAll" parameterType="String">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "PURCHASE_SMD_ID" in
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- fh313596790qq(青苔) -->
+</mapper>

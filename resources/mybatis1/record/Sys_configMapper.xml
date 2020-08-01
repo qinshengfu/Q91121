@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Sys_configMapper">
+	
+	<!--表名 -->
+	<sql id="tableName">
+		"FT_SYS_CONFIG"
+	</sql>
+	
+	<!-- 字段 -->
+	<sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"SYSTEM_START_TIME",	
+		"QQ",	
+		"WECHAT",	
+		"WITHDRAW_TODAY",	
+		"PAY_MULTIPLE",	
+		"PAY_MIN",	
+		"PAY_MAX",	
+		"ADVANCE_CHARGE",	
+		"TAIL_MONEY",	
+		"INTEREST_CYCLE1",	
+		"INTEREST_CYCLE2",	
+		"INTEREST_CYCLE3",	
+		"INTEREST_7",	
+		"INTEREST_15",	
+		"INTEREST_30",	
+		"DYNAMIC_FREEZE2",	
+		"DYNAMIC_FREEZE3",	
+		"ORDINARY_ALGEBRA",	
+		"ORDINARY_1_REWARD",	
+		"ORDINARY_2_REWARD",	
+		"ORDINARY_3_REWARD",	
+		"SENIOR_1_REWARD",	
+		"SENIOR_2_REWARD",	
+		"SENIOR_3_REWARD",	
+		"SENIOR_4_REWARD",	
+		"SENIOR_5_REWARD",	
+		"SENIOR_6_REWARD",	
+		"SENIOR_7_REWARD",	
+		"SENIOR_8_REWARD",	
+		"CASH_MULTIPLIER",	
+		"STATIC_WALLET",	
+		"DYNAMIC_WALLET",	
+		"INTERVAL_TIME",	
+		"PAYMENT_TIME",	
+		"PAY_TIME_MATCHING",	
+		"INCENTIVE_INTEREST",
+		"ADVANCE_CHARGE_INTEREST",
+		"FIRST_POWER",
+		"MY_POWER",
+		"SYS_CONFIG_ID"
+	</sql>
+	
+	<!-- 字段值 -->
+	<sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{SYSTEM_START_TIME},	
+			#{QQ},	
+			#{WECHAT},	
+			#{WITHDRAW_TODAY},	
+			#{PAY_MULTIPLE},	
+			#{PAY_MIN},	
+			#{PAY_MAX},	
+			#{ADVANCE_CHARGE},	
+			#{TAIL_MONEY},	
+			#{INTEREST_CYCLE1},	
+			#{INTEREST_CYCLE2},	
+			#{INTEREST_CYCLE3},	
+			#{INTEREST_7},	
+			#{INTEREST_15},	
+			#{INTEREST_30},	
+			#{DYNAMIC_FREEZE2},	
+			#{DYNAMIC_FREEZE3},	
+			#{ORDINARY_ALGEBRA},	
+			#{ORDINARY_1_REWARD},	
+			#{ORDINARY_2_REWARD},	
+			#{ORDINARY_3_REWARD},	
+			#{SENIOR_1_REWARD},	
+			#{SENIOR_2_REWARD},	
+			#{SENIOR_3_REWARD},	
+			#{SENIOR_4_REWARD},	
+			#{SENIOR_5_REWARD},	
+			#{SENIOR_6_REWARD},	
+			#{SENIOR_7_REWARD},	
+			#{SENIOR_8_REWARD},	
+			#{CASH_MULTIPLIER},	
+			#{STATIC_WALLET},	
+			#{DYNAMIC_WALLET},	
+			#{INTERVAL_TIME},	
+			#{PAYMENT_TIME},	
+			#{PAY_TIME_MATCHING},	
+			#{INCENTIVE_INTEREST},
+			#{ADVANCE_CHARGE_INTEREST},
+			#{FIRST_POWER},
+			#{MY_POWER},
+			#{SYS_CONFIG_ID}
+	</sql>
+	
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update
+		<include refid="tableName"/>
+		set
+		<foreach item="item" collection="_parameter.keys"
+				 separator="," close="">
+			${item} = #{[${item}]}
+		</foreach>
+		where
+		"SYS_CONFIG_ID" = '1'
+	</update>
+
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"></include>
+		from
+		<include refid="tableName"></include>
+		where
+			"SYS_CONFIG_ID" = #{SYS_CONFIG_ID}
+	</select>
+
+</mapper>

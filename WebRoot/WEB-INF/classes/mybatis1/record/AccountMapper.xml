@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AccountMapper">
+
+    <resultMap type="MemUser" id="MemUserMap">
+        <id column="ACCOUNT_ID" property="ACCOUNT_ID"/>
+        <result column="GMT_CREATE" property="GMT_CREATE"/>
+        <result column="GMT_MODIFIED" property="GMT_MODIFIED"/>
+        <result column="STATIC_WALLET" property="STATIC_WALLET"/>
+        <result column="DYNAMIC_WALLET" property="DYNAMIC_WALLET"/>
+        <result column="COUNT_BALANCE" property="COUNT_BALANCE"/>
+        <result column="TICKET" property="TICKET"/>
+        <result column="IS_WITHDRAW" property="IS_WITHDRAW"/>
+        <result column="PHONE" property="PHONE"/>
+        <result column="LOGIN_PASSWORD" property="LOGIN_PASSWORD"/>
+        <result column="TRANSACTION_PASSWORD" property="TRANSACTION_PASSWORD"/>
+        <result column="RECOMMENDED_NUMBER" property="RECOMMENDED_NUMBER"/>
+        <result column="RECOMMENDER" property="RECOMMENDER"/>
+        <result column="RE_PATH" property="RE_PATH"/>
+        <result column="USER_RANK" property="USER_RANK"/>
+        <result column="USER_STATE" property="USER_STATE"/>
+        <result column="REST_TIME" property="REST_TIME"/>
+        <result column="NAME" property="NAME"/>
+        <result column="ALIPAY" property="ALIPAY"/>
+        <result column="BANK_NAME" property="BANK_NAME"/>
+        <result column="BANK_NUMBER" property="BANK_NUMBER"/>
+        <result column="BANK_ADDRESS" property="BANK_ADDRESS"/>
+        <result column="ETH_ADDRESS" property="ETH_ADDRESS"/>
+    </resultMap>
+
+    <!--表名 -->
+    <sql id="tableName">
+		"FT_ACCOUNT"
+	</sql>
+
+    <!-- 字段 -->
+    <sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"STATIC_WALLET",	
+		"DYNAMIC_WALLET",	
+		"COUNT_BALANCE",	
+		"TICKET",	
+		"IS_WITHDRAW",	
+		"PHONE",	
+		"LOGIN_PASSWORD",	
+		"TRANSACTION_PASSWORD",	
+		"RECOMMENDED_NUMBER",	
+		"RECOMMENDER",	
+		"RE_PATH",	
+		"USER_RANK",	
+		"USER_STATE",	
+		"REST_TIME",	
+		"NAME",	
+		"ALIPAY",	
+		"BANK_NAME",	
+		"BANK_NUMBER",	
+		"BANK_ADDRESS",	
+		"ETH_ADDRESS",
+		"RECOMMENDER_ID",
+		"ACCOUNT_ID"
+	</sql>
+
+    <!-- 字段值 -->
+    <sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{STATIC_WALLET},	
+			#{DYNAMIC_WALLET},	
+			#{COUNT_BALANCE},	
+			#{TICKET},	
+			#{IS_WITHDRAW},	
+			#{PHONE},	
+			#{LOGIN_PASSWORD},	
+			#{TRANSACTION_PASSWORD},	
+			#{RECOMMENDED_NUMBER},	
+			#{RECOMMENDER},	
+			#{RE_PATH},	
+			#{USER_RANK},	
+			#{USER_STATE},	
+			#{REST_TIME},	
+			#{NAME},	
+			#{ALIPAY},	
+			#{BANK_NAME},	
+			#{BANK_NUMBER},	
+			#{BANK_ADDRESS},	
+			#{ETH_ADDRESS},
+			${RECOMMENDER_ID},
+			#{ACCOUNT_ID}
+	</sql>
+
+    <!-- 新增-->
+    <insert id="save" parameterType="pd">
+        insert into
+        <include refid="tableName"></include>
+        (
+        <include refid="Field"></include>
+        ) values (
+        <include refid="FieldValue"></include>
+        )
+    </insert>
+
+    <!-- 删除-->
+    <delete id="delete" parameterType="pd">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "ACCOUNT_ID" = #{ACCOUNT_ID}
+    </delete>
+
+    <!-- 清空数据-->
+    <delete id="wipeDate" parameterType="pd">
+        delete from
+        <include refid="tableName"/>
+        where
+        "ACCOUNT_ID" != '10000'
+    </delete>
+
+    <!-- 重置序列 -->
+    <select id="reset_seq" parameterType="pd" statementType="CALLABLE">
+        <!--调用存储过程有专门的标签statementType="CALLABLE" 用{}括起来-->
+        {
+        call RESET_SEQ(#{seqName},#{seqStart})
+        }
+    </select>
+
+    <!-- 修改 -->
+    <update id="edit" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "STATIC_WALLET" = #{STATIC_WALLET},
+        "DYNAMIC_WALLET" = #{DYNAMIC_WALLET},
+        "COUNT_BALANCE" = #{COUNT_BALANCE},
+        "TICKET" = #{TICKET},
+        "REST_TIME" = #{REST_TIME},
+        "ACCOUNT_ID" = "ACCOUNT_ID"
+        where
+        "ACCOUNT_ID" = #{ACCOUNT_ID}
+    </update>
+
+    <!-- 循环字段修改 -->
+    <update id="edit1" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <foreach item="item" collection="_parameter.keys"
+                 separator="," close="">
+            ${item} = #{[${item}]}
+        </foreach>
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 增加入场券 -->
+    <update id="addTicket" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "TICKET" = "TICKET" + ${amount}
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 减少入场券 -->
+    <update id="reduceTicket" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "TICKET" = "TICKET" - ${amount}
+        where
+        "PHONE" = #{MY_PHONE}
+        and
+        "TICKET" >= ${amount}
+    </update>
+
+    <!-- 设置用户为高级经理 -->
+    <update id="setSenior" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "USER_RANK" = 1,
+        "ACCOUNT_ID" = "ACCOUNT_ID"
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 增加钱包余额 -->
+    <update id="addMoneyAmount" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <if test="DYNAMIC_WALLET != null" >
+            "DYNAMIC_WALLET" = "DYNAMIC_WALLET" + ${money}
+        </if>
+        <if test="STATIC_WALLET != null" >
+            "STATIC_WALLET" = "STATIC_WALLET" + ${money}
+        </if>
+        <if test="COUNT_BALANCE != null" >
+            "COUNT_BALANCE" = "COUNT_BALANCE" + ${money}
+        </if>
+        <if test="TICKET != null" >
+            "TICKET" = "TICKET" + ${money}
+        </if>
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 增加提现次数 -->
+    <update id="addCashCount" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "IS_WITHDRAW" = "IS_WITHDRAW" + 1
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 提现次数清0 -->
+    <update id="cashCountZero" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "IS_WITHDRAW" = 0
+    </update>
+
+    <!-- 限制匹配天数减1 -->
+    <update id="restTimeReduce" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "REST_TIME" = "REST_TIME" - 1
+        where
+        "REST_TIME" &gt; 0
+    </update>
+
+    <!-- 根据手机号修改修改 -->
+    <update id="editByPhone" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <foreach item="item" collection="_parameter.keys"
+                 separator="," close="">
+            ${item} = #{[${item}]}
+        </foreach>
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 修改个人资料 -->
+    <update id="editMyInfo" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "NAME" = #{NAME},
+        "ALIPAY" = #{ALIPAY},
+        "BANK_NAME" = #{BANK_NAME},
+        "BANK_NUMBER" = #{BANK_NUMBER},
+        "BANK_ADDRESS" = #{BANK_ADDRESS},
+        "ETH_ADDRESS" = #{ETH_ADDRESS}
+        where
+        "ACCOUNT_ID" = #{ACCOUNT_ID}
+    </update>
+
+    <!-- 修改密码 -->
+    <update id="editPassword" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "LOGIN_PASSWORD" = #{LOGIN_PASSWORD},
+        <if test="TRANSACTION_PASSWORD != null and TRANSACTION_PASSWORD != ''">
+            "TRANSACTION_PASSWORD" = #{TRANSACTION_PASSWORD},
+            "ACCOUNT_ID" = "ACCOUNT_ID"
+        </if>
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 减少钱包余额 -->
+    <update id="reduceMoney" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        <if test="type == 0 ">
+            "STATIC_WALLET" = "STATIC_WALLET" - #{money}
+        </if>
+        <if test="type == 1 ">
+            "DYNAMIC_WALLET" = "DYNAMIC_WALLET" - #{money}
+        </if>
+        where
+        "ACCOUNT_ID" = #{ACCOUNT_ID}
+    </update>
+
+    <!-- 增加钱包余额 -->
+    <update id="addMoney" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "GMT_MODIFIED" = #{GMT_MODIFIED},
+        <if test="type == 0 ">
+            "STATIC_WALLET" = "STATIC_WALLET" + #{money}
+        </if>
+        <if test="type == 1 ">
+            "DYNAMIC_WALLET" = "DYNAMIC_WALLET" + #{money}
+        </if>
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 增加算力余额 -->
+    <update id="addPowerNumber" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "COUNT_BALANCE" = "COUNT_BALANCE" + ${NUMBER}
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 增加推荐人数量 -->
+    <update id="addReNumber" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "RECOMMENDED_NUMBER" = "RECOMMENDED_NUMBER" + 1
+        where
+        "PHONE" = #{PHONE}
+    </update>
+
+    <!-- 重置顶点账号信息 -->
+    <update id="resetAccount" parameterType="pd">
+        update
+        <include refid="tableName"/>
+        set
+        "RE_PATH" = '',
+        "IS_WITHDRAW" = 0,
+        "RECOMMENDED_NUMBER" = 0
+        where
+        "ACCOUNT_ID" = '10000'
+    </update>
+
+    <!-- 通过ID获取数据 -->
+    <select id="findById" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"></include>
+        from
+        <include refid="tableName"></include>
+        where
+        "ACCOUNT_ID" = #{ACCOUNT_ID}
+    </select>
+
+    <!-- 获取直推人数 -->
+    <select id="getReCount" parameterType="pd" resultType="pd">
+        select
+            count("ACCOUNT_ID") as RE_COUNT
+        from
+        <include refid="tableName"/>
+        where
+        RECOMMENDER_ID = #{ACCOUNT_ID}
+    </select>
+
+    <!-- 通过个人资料获取数据 -->
+    <select id="findByMyInfo" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "NAME" = #{NAME}
+        and "ALIPAY" = #{ALIPAY}
+        and "BANK_NAME" = #{BANK_NAME}
+        and "BANK_NUMBER" = #{BANK_NUMBER}
+        and "BANK_ADDRESS" = #{BANK_ADDRESS}
+        and "ETH_ADDRESS" = #{ETH_ADDRESS}
+    </select>
+
+    <!-- 通过手机号获取数据 -->
+    <select id="findByPhone" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+    </select>
+
+    <!-- 通过手机号获取数据，返回实体类 -->
+    <select id="findByPhone1" parameterType="pd" resultMap="MemUserMap">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+    </select>
+
+    <!-- 列表 -->
+    <select id="datalistPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where 1=1
+        /*搜索类型*/
+        <if test="pd.name != null and pd.name != '' ">
+            <if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+                and
+                (
+                    ${pd.name} LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                )
+            </if>
+        </if>
+        <if test="pd.name == null or pd.name == '' ">
+            <if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+                and
+                (
+                    "NAME" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "RECOMMENDER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "ALIPAY" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "BANK_NAME" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "BANK_ADDRESS" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                    or
+                    "USER_RANK" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                )
+            </if>
+        </if>
+        /*时间段搜索*/
+        <if test="pd.lastStart != null and pd.lastStart != '' ">
+            and
+            "GMT_CREATE" &gt;= #{pd.lastStart}
+        </if>
+        <if test="pd.lastEnd!= null and pd.lastEnd != '' ">
+            and
+            "GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+        </if>
+        order by "ACCOUNT_ID"
+    </select>
+
+    <!-- 列表(全部) -->
+    <select id="listAll" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"></include>
+        from
+        <include refid="tableName"></include>
+    </select>
+
+    <!-- 列表(推荐图) -->
+    <select id="recommendationMap" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "RE_PATH" LIKE CONCAT(CONCAT('%', #{ACCOUNT_ID}),'%')
+        order by "ACCOUNT_ID" desc
+    </select>
+
+    <!-- 列表(根据推荐路径查所有上级) -->
+    <select id="listByRePath" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "ACCOUNT_ID" in ( ${RE_PATH} )
+        order by "ACCOUNT_ID" desc
+    </select>
+
+    <!-- 批量删除 -->
+    <delete id="deleteAll" parameterType="String">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "ACCOUNT_ID" in
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+
+
+</mapper>

@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Smd_matchMapper">
+	
+	<!--表名 -->
+	<sql id="tableName">
+		"FT_SMD_MATCH"
+	</sql>
+	
+	<!-- 字段 -->
+	<sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"NUMBER",	
+		"BUY_ORDER",	
+		"SELL_ORDER",	
+		"ORDER_STATE",	
+		"TRANSACTION_ORDER",
+		"BUY_PHONE",
+		"SELL_PHONE",
+		"PIC_PATH",
+		"BUY_ID",
+		"SELL_ID",
+		"SMD_MATCH_ID"
+	</sql>
+	
+	<!-- 字段值 -->
+	<sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{NUMBER},	
+			#{BUY_ORDER},	
+			#{SELL_ORDER},	
+			#{ORDER_STATE},
+			#{TRANSACTION_ORDER},
+			#{BUY_PHONE},
+			#{SELL_PHONE},
+			#{PIC_PATH},
+			#{BUY_ID},
+			#{SELL_ID},
+			#{SMD_MATCH_ID}
+	</sql>
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into
+		<include refid="tableName"></include>
+		(
+		<include refid="Field"></include>
+		) values (
+		<include refid="FieldValue"></include>
+		)
+	</insert>
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		delete from
+		<include refid="tableName"></include>
+		where 
+			"SMD_MATCH_ID" = #{SMD_MATCH_ID}
+	</delete>
+
+	<!-- 清空数据-->
+	<delete id="wipeDate" parameterType="pd">
+		delete from
+		<include refid="tableName"/>
+	</delete>
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update
+		<include refid="tableName"/>
+		set
+		<foreach item="item" collection="_parameter.keys"
+				 separator="," close="">
+			${item} = #{[${item}]}
+		</foreach>
+		where
+		"SMD_MATCH_ID" = #{SMD_MATCH_ID}
+	</update>
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select 
+		<include refid="Field"></include>
+		from 
+		<include refid="tableName"></include>
+		where 
+			"SMD_MATCH_ID" = #{SMD_MATCH_ID}
+	</select>
+
+	<!-- 通过订单ID获取数据 -->
+	<select id="findByOrderId" parameterType="pd" resultType="pd">
+		SELECT
+		*
+		FROM
+		FT_SMD_MATCH A
+		INNER JOIN
+		FT_ACCOUNT B
+		<if test="TAG == 0">
+			on
+			A.SELL_PHONE = B.PHONE
+			AND	A."BUY_ID" = #{OrderId}
+		</if>
+		<if test="TAG == 1">
+			on
+			A.BUY_PHONE = B.PHONE
+			AND A."SELL_ID" = #{OrderId}
+		</if>
+		ORDER BY TO_NUMBER("BUY_ID") desc
+	</select>
+
+	<!-- 获取最新订单id -->
+	<select id="getMaxOrderId" parameterType="pd" resultType="pd">
+		SELECT
+		MAX( "SMD_MATCH_ID" ) as MAX_ID
+		FROM
+		<include refid="tableName"/>
+	</select>
+
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		select
+		<include refid="Field"/>
+		from 
+		<include refid="tableName"/>
+		where 1=1
+		<if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+			and
+				(
+					"BUY_ORDER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+					or
+					"SELL_ORDER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+					or
+					"NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+					or
+					"TRANSACTION_ORDER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+					or
+					"BUY_PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+					or
+					"SELL_PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+				)
+		</if>
+		/*时间段匹配*/
+		<if test="pd.lastStart != null and pd.lastStart != '' ">
+			and
+			"GMT_CREATE" &gt;= #{pd.lastStart}
+		</if>
+		<if test="pd.lastEnd!= null and pd.lastEnd != '' ">
+			and
+			"GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+		</if>
+	</select>
+	
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"></include>
+		from 
+		<include refid="tableName"></include>
+	</select>
+
+	<!-- 列表(根据时间查询) -->
+	<select id="listByTime" parameterType="pd" resultType="pd">
+		SELECT
+		*
+		FROM
+		FT_SMD_MATCH A
+		INNER JOIN FT_PURCHASE_SMD B ON A.BUY_ID = B.PURCHASE_SMD_ID
+		AND A.PIC_PATH is NULL
+		<if test="nowTime != null and nowTime != '' ">
+			AND	A.GMT_CREATE = #{nowTime}
+		</if>
+	</select>
+
+	<!-- 列表(只完成了预付款的订单) -->
+	<select id="listByState" parameterType="pd" resultType="pd">
+		SELECT
+		*
+		FROM
+		FT_SMD_MATCH A
+			INNER JOIN FT_PURCHASE_SMD B ON A.BUY_ID = B.PURCHASE_SMD_ID
+			AND B.PAYMENT_STATE = '6'
+			AND A.BUY_ORDER IN ( SELECT "ORDER_NUMBER" FROM FT_PURCHASE_SMD WHERE ORDER_TYPE = '2' AND PAYMENT_STATE != '6' )
+			<if test="NOW_TIME != null">
+				AND A.GMT_MODIFIED = #{NOW_TIME}
+			</if>
+	</select>
+
+	<!-- 列表(完成了尾款的订单) -->
+	<select id="listByState1" parameterType="pd" resultType="pd">
+		SELECT
+		*
+		FROM
+		FT_SMD_MATCH A
+		INNER JOIN FT_PURCHASE_SMD B ON A.BUY_ID = B.PURCHASE_SMD_ID
+		AND B.PAYMENT_STATE = '6'
+		AND A.BUY_ID IN ( SELECT "PURCHASE_SMD_ID" FROM FT_PURCHASE_SMD WHERE ORDER_TYPE = '2' AND PAYMENT_STATE = '6' )
+		<if test="NOW_TIME != null">
+			AND A.RELEASE_TIME = #{NOW_TIME}
+		</if>
+		<if test="NOW_TIME == null">
+			AND A.RELEASE_TIME &lt; #{NOW_TIME}
+		</if>
+	</select>
+
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from
+		<include refid="tableName"></include>
+		where 
+			"SMD_MATCH_ID" in
+		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>
+	</delete>
+	
+	<!-- fh313596790qq(青苔) -->
+</mapper>

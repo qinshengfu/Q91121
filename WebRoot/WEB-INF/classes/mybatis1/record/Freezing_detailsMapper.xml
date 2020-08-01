@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Freezing_detailsMapper">
+
+    <!--表名 -->
+    <sql id="tableName">
+		"FT_FREEZING_DETAILS"
+	</sql>
+
+    <!-- 字段 -->
+    <sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"ORDER_NUMBER",	
+		"PHONE",	
+		"MONEY",	
+		"TYPE",	
+		"RELEASE_TIME",
+		"STATE",
+		"FREEZING_DETAILS_ID"
+	</sql>
+
+    <!-- 字段值 -->
+    <sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{ORDER_NUMBER},	
+			#{PHONE},	
+			#{MONEY},	
+			#{TYPE},	
+			#{RELEASE_TIME},
+			#{STATE},
+			#{FREEZING_DETAILS_ID}
+	</sql>
+
+    <!-- 新增-->
+    <insert id="save" parameterType="pd">
+        insert into
+        <include refid="tableName"></include>
+        (
+        <include refid="Field"></include>
+        ) values (
+        <include refid="FieldValue"></include>
+        )
+    </insert>
+
+    <!-- 删除-->
+    <delete id="delete" parameterType="pd">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "FREEZING_DETAILS_ID" = #{FREEZING_DETAILS_ID}
+    </delete>
+
+    <!-- 清空数据-->
+    <delete id="wipeDate" parameterType="pd">
+        delete from
+        <include refid="tableName"/>
+    </delete>
+
+    <!-- 修改 -->
+    <update id="edit" parameterType="pd">
+        update
+        <include refid="tableName"></include>
+        set
+        <foreach item="item" collection="_parameter.keys"
+                 separator="," close="">
+            ${item} = #{[${item}]}
+        </foreach>
+        where
+        "FREEZING_DETAILS_ID" = #{FREEZING_DETAILS_ID}
+    </update>
+
+    <!-- 通过ID获取数据 -->
+    <select id="findById" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where
+        "FREEZING_DETAILS_ID" = #{FREEZING_DETAILS_ID}
+    </select>
+
+    <!-- 通过手机号获取总额 -->
+    <select id="getSumByPhone" parameterType="pd" resultType="pd">
+        select
+        DECODE(SUM( "MONEY" ), null, 0,SUM( "MONEY" )) AS SUM_MONEY
+        from
+        <include refid="tableName"/>
+        where
+        "PHONE" = #{PHONE}
+    </select>
+
+    <!-- 通过手机号获取最新ID -->
+    <select id="findByPhone" parameterType="pd" resultType="pd">
+        SELECT
+        MAX( "FREEZING_DETAILS_ID" ) as FREEZING_DETAILS_ID
+        FROM
+        <include refid="tableName"/>
+        WHERE "PHONE" = #{PHONE}
+    </select>
+
+    <!-- 列表 -->
+    <select id="datalistPage" parameterType="page" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where 1=1
+        <if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+            and
+            (
+                "ORDER_NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                or
+                "PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                or
+                "MONEY" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+                or
+                "RELEASE_TIME" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+            )
+        </if>
+        /*时间段搜索*/
+        <if test="pd.lastStart != null and pd.lastStart != '' ">
+            and
+            "GMT_CREATE" &gt;= #{pd.lastStart}
+        </if>
+        <if test="pd.lastEnd!= null and pd.lastEnd != '' ">
+            and
+            "GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+        </if>
+        order by "GMT_CREATE" desc
+    </select>
+
+    <!-- 列表(全部) -->
+    <select id="listAll" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"></include>
+        from
+        <include refid="tableName"></include>
+    </select>
+
+    <!-- 列表(根据时间查询) -->
+    <select id="listByTime" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        WHERE
+        <if test="nowTime != null and nowTime != '' ">
+            "RELEASE_TIME" = #{nowTime}
+        </if>
+        <if test="nowTime == null">
+            "RELEASE_TIME" &gt;= ( SELECT to_char( SYSDATE, 'yyyy-MM-dd HH24:mi:ss' ) FROM dual )
+        </if>
+    </select>
+
+    <!-- 列表(根据手机号查询) -->
+    <select id="listByPhone" parameterType="pd" resultType="pd">
+        select
+        <include refid="Field"/>
+        from
+        <include refid="tableName"/>
+        where "PHONE" = #{PHONE}
+        order by "FREEZING_DETAILS_ID" desc
+    </select>
+
+    <!-- 批量删除 -->
+    <delete id="deleteAll" parameterType="String">
+        delete from
+        <include refid="tableName"></include>
+        where
+        "FREEZING_DETAILS_ID" in
+        <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- fh313596790qq(青苔) -->
+</mapper>

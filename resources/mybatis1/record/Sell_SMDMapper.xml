@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Sell_SMDMapper">
+	
+	<!--表名 -->
+	<sql id="tableName">
+		"FT_SELL_SMD"
+	</sql>
+	
+	<!-- 字段 -->
+	<sql id="Field">
+		"GMT_CREATE",	
+		"GMT_MODIFIED",	
+		"NUMBER",	
+		"PHONE",	
+		"RECEIVE_TYPE",	
+		"RECEIVE_STATE",
+		"BALANCE",
+		"PURSE_TYPE",
+		"ORDER_NUMBER",
+		"SELL_SMD_ID"
+	</sql>
+	
+	<!-- 字段值 -->
+	<sql id="FieldValue">
+			#{GMT_CREATE},	
+			#{GMT_MODIFIED},	
+			#{NUMBER},	
+			#{PHONE},	
+			#{RECEIVE_TYPE},	
+			#{RECEIVE_STATE},
+			#{BALANCE},
+			#{PURSE_TYPE},
+			#{ORDER_NUMBER},
+			#{SELL_SMD_ID}
+	</sql>
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into
+		<include refid="tableName"></include>
+		(
+		<include refid="Field"></include>
+		) values (
+		<include refid="FieldValue"></include>
+		)
+	</insert>
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		delete from
+		<include refid="tableName"></include>
+		where 
+			"SELL_SMD_ID" = #{SELL_SMD_ID}
+	</delete>
+
+	<!-- 清空数据-->
+	<delete id="wipeDate" parameterType="pd">
+		delete from
+		<include refid="tableName"/>
+	</delete>
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update
+		<include refid="tableName"/>
+		set
+		<foreach item="item" collection="_parameter.keys"
+				 separator="," close="">
+			${item} = #{[${item}]}
+		</foreach>
+		where
+		"SELL_SMD_ID" = #{SELL_SMD_ID}
+	</update>
+
+	<!-- 更改状态并增加余额 -->
+	<update id="editStateAndMoney" parameterType="pd">
+		update
+		<include refid="tableName"/>
+		set
+		"RECEIVE_STATE" = #{RECEIVE_STATE},
+		"BALANCE" = "BALANCE" + ${money}
+		where
+		"SELL_SMD_ID" = #{SELL_SMD_ID}
+	</update>
+
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select 
+		<include refid="Field"></include>
+		from 
+		<include refid="tableName"></include>
+		where 
+			"SELL_SMD_ID" = #{SELL_SMD_ID}
+	</select>
+
+	<!-- 通过订单ID获取数据 -->
+	<select id="findByOrderId" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"/>
+		from
+		<include refid="tableName"/>
+		where
+		"SELL_SMD_ID" = #{OrderId}
+	</select>
+
+	<!-- 获取最新的订单ID -->
+	<select id="getMaxOrderId" parameterType="pd" resultType="pd">
+		SELECT
+		MAX( "SELL_SMD_ID" ) as MAX_ID
+		FROM
+		<include refid="tableName"/>
+	</select>
+
+	<!-- 获取所有未匹配的订单金额累计 -->
+	<select id="getUnmatchCount" parameterType="pd" resultType="pd">
+		select
+		DECODE(SUM("BALANCE"), null, 0,SUM("BALANCE"))  AS COUNT
+		from
+		<include refid="tableName"/>
+		where
+		"BALANCE" &gt; 0
+	</select>
+
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		select
+		<include refid="Field"/>
+		from 
+		<include refid="tableName"/>
+		where 1=1
+		<if test="pd.keywords!= null and pd.keywords != ''"><!-- 关键词检索 -->
+			and
+				(
+			"NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+			or
+			"PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+			or
+			"ORDER_NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+			or
+			"BALANCE" LIKE CONCAT(CONCAT('%', #{pd.keywords}),'%')
+				)
+		</if>
+		/*时间段匹配*/
+		<if test="pd.lastStart1 != null and pd.lastStart1 != '' ">
+			and
+			"GMT_CREATE" &gt;= #{pd.lastStart1}
+		</if>
+		<if test="pd.lastEnd1 != null and pd.lastEnd1 != '' ">
+			and
+			"GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd1}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+		</if>
+	</select>
+
+	<!-- 余额大于0的列表 -->
+	<select id="datalistPage1" parameterType="page" resultType="pd">
+		select
+		<include refid="Field"/>
+		from
+		<include refid="tableName"/>
+		where 1=1
+		<if test="pd.keywords2 != null and pd.keywords2 != ''"><!-- 关键词检索 -->
+			and
+			(
+				"NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords2}),'%')
+				or
+				"PHONE" LIKE CONCAT(CONCAT('%', #{pd.keywords2}),'%')
+				or
+				"ORDER_NUMBER" LIKE CONCAT(CONCAT('%', #{pd.keywords2}),'%')
+				or
+				"BALANCE" LIKE CONCAT(CONCAT('%', #{pd.keywords2}),'%')
+			)
+		</if>
+		/*时间段匹配*/
+		<if test="pd.lastStart1 != null and pd.lastStart1 != '' ">
+			and
+			"GMT_CREATE" &gt;= #{pd.lastStart1}
+		</if>
+		<if test="pd.lastEnd1 != null and pd.lastEnd1 != '' ">
+			and
+			"GMT_CREATE" &lt;=  ( SELECT TO_CHAR(( SELECT to_date( #{pd.lastEnd1}, 'yyyy-mm-dd' ) + 1 FROM dual ), 'yyyy-mm-dd' ) FROM dual )
+		</if>
+		and "BALANCE" &gt; 0
+	</select>
+
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"></include>
+		from 
+		<include refid="tableName"></include>
+	</select>
+
+	<!-- 列表(通过手机号获取所有赎回列表) -->
+	<select id="listByPhone" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"/>
+		from
+		<include refid="tableName"/>
+		where
+		"PHONE" = #{PHONE}
+		order by "GMT_CREATE" desc
+	</select>
+
+	<!-- 列表(根据ID获取余额大于0的数据) -->
+	<select id="listById" parameterType="pd" resultType="pd">
+		select
+		<include refid="Field"/>
+		from
+		<include refid="tableName"/>
+		where
+		"SELL_SMD_ID" in ( ${SELL_SMD_ID} )
+		and "BALANCE" &gt; 0
+	</select>
+
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from
+		<include refid="tableName"></include>
+		where 
+			"SELL_SMD_ID" in
+		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>
+	</delete>
+	
+	<!-- fh313596790qq(青苔) -->
+</mapper>
